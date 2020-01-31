@@ -17,6 +17,7 @@
     "compression": "^1.7.1",
     "cross-env": "^6.0.3",
     "ethers": "5.0.0-beta.156",
+    "marked": "^0.8.0",
     "polka": "next",
     "rocketh": "^0.4.24",
     "sirv": "^0.4.0",

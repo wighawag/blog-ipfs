@@ -1,23 +1,59 @@
-<script context="module">
-	export async function preload({ params, query }) {
-		// the `slug` parameter is available because
-		// this file is called [slug].svelte
-		const res = await this.fetch(`blog/${params.slug}.json`);
-		const data = await res.json();
+<svelte:head>
+	<title>{post.metadata.title}</title>
+</svelte:head>
 
-		if (res.status === 200) {
-			return { post: data };
-		} else {
-			this.error(res.status, data.message);
-		}
-	}
-</script>
 
-<script>
-	export let post;
-</script>
+{#if post.metadata.image}
+<figure>
+	<img src="{post.metadata.image}" alt="" />
+	{#if post.metadata.caption}
+		<figcaption>
+			{#if post.metadata.captionlabel}
+				{post.metadata.captionlabel}
+			{/if}
+			{#if post.metadata.captionlink}
+				<a href="{post.metadata.captionlink}">
+					{post.metadata.caption}
+				</a>
+			{:else}
+				{post.metadata.caption}
+			{/if}
+		</figcaption>
+	{/if}
+</figure>
+{/if}
+
+
+<section class='content'>
+	<h1>{post.metadata.title}</h1>
+	{@html post.html}
+</section>
 
 <style>
+	figure {
+		margin: 0 auto;
+	}
+
+	figure img {
+		height: auto;
+		max-height: 384px;
+		max-width: 100%;
+	}
+
+	figcaption {
+		display: block;
+		font-size: .875em;
+		font-style: italic;
+		padding: 0 1em;
+	}
+
+	.content {
+		max-width: 40em;
+		padding: 1em 2em 2em;
+		margin: 0 auto;
+		text-align: left;
+	}
+
 	/*
 		By default, CSS is locally scoped to the component,
 		and any unused styles are dead-code-eliminated.
@@ -26,6 +62,7 @@
 		so we have to use the :global(...) modifier to target
 		all elements inside .content
 	*/
+
 	.content :global(h2) {
 		font-size: 1.4em;
 		font-weight: 500;
@@ -53,12 +90,24 @@
 	}
 </style>
 
-<svelte:head>
-	<title>{post.title}</title>
-</svelte:head>
+<script>
+	export let post;
+</script>
 
-<h1>{post.title}</h1>
+<script context="module">
 
-<div class='content'>
-	{@html post.html}
-</div>
+	export async function preload({ params, query }) {
+			// the `slug` parameter is available because
+			// this file is called [slug].html
+			const res = await this.fetch(`blog/${params.slug}.json`);
+			console.log(res);
+			const data = await res.json();
+
+			if (res.status === 200) {
+				return { post: data };
+			} else {
+				this.error(res.status, data.message);
+			}
+		};
+
+</script>
