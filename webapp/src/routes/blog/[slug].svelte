@@ -48,7 +48,7 @@
 	}
 
 	.content {
-		max-width: 40em;
+		/* max-width: 40em; */
 		padding: 1em 2em 2em;
 		margin: 0 auto;
 		text-align: left;
@@ -100,7 +100,6 @@
 			// the `slug` parameter is available because
 			// this file is called [slug].html
 			const res = await this.fetch(`blog/${params.slug}.json`);
-			console.log(res);
 			const data = await res.json();
 
 			if (res.status === 200) {
