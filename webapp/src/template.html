@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang='en'>
+<head>
+	<meta charset='utf-8'>
+	<meta name='viewport' content='width=device-width,initial-scale=1.0'>
+	<meta name='theme-color' content='#333333'>
+
+	%sapper.base%
+
+	<script src="js/mobileConsole.1.3.js"></script>
+	<script>
+		(function () {
+			var src = '//cdn.jsdelivr.net/npm/eruda';
+			if (!/_d_eruda/.test(window.location) && localStorage.getItem('active-eruda') != 'true') return;
+			window._debug = true;
+			document.write('<scr' + 'ipt src="' + src + '"></scr' + 'ipt>');
+			document.write('<scr' + 'ipt>eruda.init();</scr' + 'ipt>');
+		})();
+		if (!!/_d_mc/.test(window.location)) {
+			window._debug = true;
+			mobileConsole.init();
+		}
+	</script>
+
+	<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+	<link rel="manifest" href="site.webmanifest">
+	<link rel="mask-icon" href="safari-pinned-tab.svg" color="#5bbad5">
+	<meta name="msapplication-TileColor" content="#333333">
+	<meta name="theme-color" content="#ffffff">
+
+	<link rel='stylesheet' href='global.css'>
+
+	<!-- Sapper generates a <style> tag containing critical CSS
+	     for the current page. CSS for the rest of the app is
+	     lazily loaded when it precaches secondary pages -->
+	%sapper.styles%
+
+	<!-- This contains the contents of the <svelte:head> component, if
+	     the current page has one -->
+	%sapper.head%
+</head>
+<body>
+	<!-- The application will be rendered inside this element,
+	     because `src/client.js` references it -->
+	<div id='sapper'>%sapper.html%</div>
+
+	<!-- Sapper creates a <script> tag containing `src/client.js`
+	     and anything else it needs to hydrate the app and
+	     initialise the router -->
+	%sapper.scripts%
+</body>
+</html>
