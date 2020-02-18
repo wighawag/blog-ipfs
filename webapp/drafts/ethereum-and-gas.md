@@ -1,6 +1,7 @@
 ---
 title: Ethereum And Gas
 pubdate: 2018-07-18
+mediumLink: https://medium.com/@wighawag/
 # image: Sacred_Chao_2.jpg
 # caption: Wikipedia
 # captionlabel: Source:

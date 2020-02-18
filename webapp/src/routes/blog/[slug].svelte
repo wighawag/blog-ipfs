@@ -29,6 +29,12 @@
 	{@html post.html}
 </section>
 
+<!-- <hr style="margin-bottom: 3em;"/> -->
+
+{#if post.metadata.mediumLink }
+<p style="font-style: italic;">This post can also be found on medium <a href="{post.metadata.mediumLink}">here</a> where you can follow me.</p>
+{/if}
+
 <style>
 	figure {
 		margin: 0 auto;
