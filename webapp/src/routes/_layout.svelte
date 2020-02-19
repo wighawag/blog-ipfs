@@ -8,7 +8,7 @@
 
 	let modalText;
 
-	let ensName = 'wighawag.eth';
+	let ensName = 'ronan.eth';
 	let fallbackAddress;
 
 	async function donate(value) {
@@ -19,8 +19,8 @@
 			// TODO await // loading ?
 		} else if ($wallet.status === 'Error') {
 			modalText = 'An error occured : ' + ($wallet.error.message ? $wallet.error.message : $wallet.error);
-		} else if ($wallet.status === 'Opera_Locked') {
-			modalText = 'You are using Opera, please setup your wallet. And retry';
+		// } else if ($wallet.status === 'Opera_Locked') {
+		// 	modalText = 'You are using Opera, please setup your wallet. And retry';
 		} else if ($wallet.status === 'Opera_FailedChainId') {
 			modalText = 'You are using Opera, please setup your wallet. And retry';
 		} else if ($wallet.status === 'WalletToChoose') {
