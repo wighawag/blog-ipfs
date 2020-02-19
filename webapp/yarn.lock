@@ -3182,7 +3182,7 @@ safe-regex@^1.1.0:
 
 "sapper@git://github.com/wighawag/sapper.git#relative_baseUrl":
   version "0.27.8"
-  resolved "git://github.com/wighawag/sapper.git#c24f8388f1daeb56f00d22c729cf3db608de85ae"
+  resolved "git://github.com/wighawag/sapper.git#bcfd81258fed6d68a232315393b6b302bdce479a"
   dependencies:
     html-minifier "^4.0.0"
     http-link-header "^1.0.2"

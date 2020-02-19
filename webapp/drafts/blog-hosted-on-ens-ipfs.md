@@ -29,7 +29,7 @@ One issue I had was that it assumed url where always coming from the same root f
 
 I wanted my website to support both and made a fork of sapper with support for it. The [PR on sapper github](https://github.com/sveltejs/sapper/pull/866) is still open but in the mean time you can use my fork to have that. And feel free to add your thoughts there if you want to help get it merged.
 
-Plus for web3 related stuff, I have a library currently called [svelte-wallet](https://github.com/wighawag/svelte-wallet) that use the store api of svelte allowing you to easily interact with Ethereum. It is still a work in progress, but plan to make it a stable library soon. I use it for several projects and it makes my life easier :) It is actually not tied to svelte as svelte store simply follow the Observable pattern.
+Plus for web3 related stuff, I have a library: [svelte-wallet](https://github.com/wighawag/svelte-wallet) that uses the store api of svelte allowing you to easily interact with Ethereum. It is still a work in progress, but plan to make it a stable library soon. I use it for several projects and it makes my life easier :) It is actually not tied to svelte as svelte store simply follow the Observable pattern, (see [here](https://svelte.dev/docs#Store_contract)).
 
 I actually use it here to add a donation button to that page. See below.
 
@@ -45,7 +45,7 @@ What would be missing from my earlier blog websites will be a commenting system.
 
 That's all
 
-Thanks for reading and stay tuned for an article on Ethereum and how the concept of gas work there. I started to realize that not many knows how gas actually works on the EVM and the pitfalls it introduce so hopefully the next article will be helpful to you.
+Thanks for reading and stay tuned for an article on Ethereum and the concept of gas. I started to realize that not many knows how gas actually works on the EVM and the pitfalls it introduce so hopefully the next article will be helpful to you.
 
-
+Thanks for reading.
 

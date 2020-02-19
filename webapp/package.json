@@ -7,7 +7,7 @@
     "dev": "sapper dev",
     "build": "cross-env NODE_ENV=production sapper build",
     "export": "cross-env NODE_ENV=production sapper export --relative-basepath",
-    "serve-export": "sirv __sapper__/export",
+    "serve-export": "sirv -H 0.0.0.0 __sapper__/export",
     "start": "node __sapper__/build",
     "cy:run": "cypress run",
     "cy:open": "cypress open",

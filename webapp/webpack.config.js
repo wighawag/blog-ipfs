@@ -29,6 +29,22 @@ const alias = { svelte: path.resolve('node_modules', 'svelte'), contractsInfo };
 const extensions = ['.mjs', '.js', '.json', '.svelte', '.html'];
 const mainFields = ['svelte', 'module', 'browser', 'main'];
 
+
+let https;
+let cert_paths;
+try {
+	cert_paths = JSON.parse(fs.readFileSync('./.cert_paths').toString());
+} catch (e) {}
+if (cert_paths) {
+	console.log(cert_paths);
+	https = {
+		key: fs.readFileSync(cert_paths.key),
+		cert: fs.readFileSync(cert_paths.cert),
+		ca: fs.readFileSync(cert_paths.ca),  
+	};
+}
+
+
 module.exports = {
 	client: {
 		entry: config.client.entry(),
@@ -85,12 +101,17 @@ module.exports = {
 		mode: process.env.NODE_ENV,
 		performance: {
 			hints: false // it doesn't matter if server.js is large
-		}
+		},
 	},
 
 	serviceworker: {
 		entry: config.serviceworker.entry(),
 		output: config.serviceworker.output(),
 		mode: process.env.NODE_ENV
+	},
+
+	devServer: {
+		host: "0.0.0.0",
+		https,
 	}
 };
