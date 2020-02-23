@@ -48,7 +48,7 @@ const pinDirectoryToIPFS = (src) => {
                 }
             }
         ).then(function (response) {
-            console.log(JSON.stringify(response, null, '  '));
+            console.log(JSON.stringify(response.data, null, '  '));
             //handle response here
         }).catch(function (error) {
             console.error(JSON.stringify(error.message, null, '  '));
