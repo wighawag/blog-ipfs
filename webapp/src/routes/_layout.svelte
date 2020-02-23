@@ -7,9 +7,21 @@
 	export let segment;
 
 	let modalText;
+	let retryText;
 
-	let ensName = 'wighawag.eth';
+	let ensName = 'ronan.eth';
 	let fallbackAddress;
+
+	async function retry() {
+		location.reload();
+		// retryText = null;
+		// modalText = null;
+		// try {
+		// 	await wallet.retry(); // TODO svelte-wallet return error
+		// } catch(e) {
+		// 	modalText = 'Could not connect';
+		// }
+	}
 
 	async function donate(value) {
 		if ($wallet.status === 'NoWallet') {
@@ -20,9 +32,13 @@
 		} else if ($wallet.status === 'Error') {
 			modalText = 'An error occured : ' + ($wallet.error.message ? $wallet.error.message : $wallet.error);
 		} else if ($wallet.status === 'Opera_Locked') {
+			// modalText = 'Opera requires you to connect';
+			// retryText = 'Connect';
 			modalText = 'You are using Opera, please setup your wallet. And retry';
+			retryText = 'Retry';
 		} else if ($wallet.status === 'Opera_FailedChainId') {
 			modalText = 'You are using Opera, please setup your wallet. And retry';
+			retryText = 'Retry';
 		} else if ($wallet.status === 'WalletToChoose') {
 			// TODO
 			modalText = `We encountered an issue, send tokens or ethers to ${ensName} ${fallbackAddress ? `{${fallbackAddress})` : ''}`;
@@ -90,8 +106,13 @@
 	<!-- Modal content -->
 	
 	<div class="modal-content">
+		{#if !retryText}
 		<span class="close" on:click="{() => modalText = null}">&times;</span>
+		{/if}
 	<p>{modalText}</p>
+	{#if retryText}
+	<button on:click="{() => retry()}">{retryText}</button>
+	{/if}
 	</div>
 </div>
 
