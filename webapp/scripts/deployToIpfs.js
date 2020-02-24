@@ -3,15 +3,16 @@ const fs = require('fs');
 const FormData = require('form-data');
 const recursive = require('recursive-fs');
 const basePathConverter = require('base-path-converter');
+const slash = require('slash');
 
 const pinataCredentials = JSON.parse(fs.readFileSync('.pinata').toString());
 
-const pinDirectoryToIPFS = (src) => {
+const pinDirectoryToIPFS = (src, {name, config}) => {
     const url = `https://api.pinata.cloud/pinning/pinFileToIPFS`;
     //we gather the files from a local directory in this example, but a valid readStream is all that's needed for each file in the directory.
     recursive.readdirr(src, function (err, dirs, files) {
         let data = new FormData();
-        files.forEach((file) => {
+        files.map(slash).forEach((file) => {
             //for each file stream, we need to include the correct relative file path
             const filepath = basePathConverter(src, file);
             console.log(src, file, filepath);
@@ -21,16 +22,17 @@ const pinDirectoryToIPFS = (src) => {
         });
     
         const metadata = JSON.stringify({
-            name: '' + Math.floor(Date.now() / 1000),
-            keyvalues: {
-                timestamo: '' + Math.floor(Date.now() / 1000)
-            }
+            name,
+            // keyvalues: {
+            //     timestamp: '' + Math.floor(Date.now() / 1000)
+            // }
         });
         data.append('pinataMetadata', metadata);
 
-        const pinataOptions = JSON.stringify({
+        config = config || {
             cidVersion: 0
-        });
+        };
+        const pinataOptions = JSON.stringify(config);
         data.append('pinataOptions', pinataOptions);
     
         console.log({
@@ -58,5 +60,10 @@ const pinDirectoryToIPFS = (src) => {
 };
 
 (async () => {
-    await pinDirectoryToIPFS('__sapper__/export');
+    await pinDirectoryToIPFS('__sapper__/export',
+        {name: 'ronan.eth',
+        config: {
+            cidVersion: 0
+        }
+    });
 })()

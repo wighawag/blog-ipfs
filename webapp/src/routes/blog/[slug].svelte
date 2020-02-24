@@ -35,6 +35,10 @@
 <p style="font-style: italic;">This post can also be found on medium <a href="{post.metadata.mediumLink}">here</a> where you can follow me.</p>
 {/if}
 
+<MailingList/>
+
+<Donate />
+
 <style>
 	figure {
 		margin: 0 auto;
@@ -98,6 +102,8 @@
 
 <script>
 	export let post;
+	import Donate from '../../components/Donate.svelte';
+	import MailingList from "../../components/MailingList";
 </script>
 
 <script context="module">

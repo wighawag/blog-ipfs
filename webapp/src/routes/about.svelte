@@ -2,12 +2,13 @@
 	<title>About Me</title>
 </svelte:head>
 
-<h1>Ronan Sandford</h1>
+<h1>Ronan Sandford (a.k.a @<a href="https://twitter.com/wighawag">wighawag</a>)</h1>
 
-<p>Blockchain Game Developer</p>
+<h2>Blockchain Architect and Game Developer</h2>
 
-<p>Some Projects:</p>
+<hr/>
 
+<p>Portfolio:</p>
 <ul>
 	<li><a target="_blank" href="http://etherplay.io">Etherplay</a>, a transparent skill game platform. The first game to run on Ethereum, released early 2017</li>
 	<li><a target="_blank" href="http://ethernal.world">Ethernal</a>, a procedurally generated dungeon on the blockchain</li>

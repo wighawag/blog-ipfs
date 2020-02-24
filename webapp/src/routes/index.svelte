@@ -12,8 +12,8 @@
 
 <style>
 	ul {
-		margin: 0 0 1em 0;
-		line-height: 6;
+		margin: 0 0 1em 1em;
+		line-height: 2;
 		font-size: large;
 	}
 </style>
