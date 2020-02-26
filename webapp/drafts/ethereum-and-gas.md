@@ -7,7 +7,7 @@ mediumLink: https://medium.com/@wighawag/
 # captionlabel: Source:
 # captionlink: https://en.wikipedia.org/wiki/File:Sacred_Chao_2.jpg
 ---
-In this article, we'll explore the concept of gas on Ethereum. We'll explain how it behaves and show what its sometimes, subtle behaviour actually implies.
+Hi, I am back with an article on ethereum. We'll explore the concept of gas and explain how it behaves and show what its sometimes, subtle behaviour actually implies.
 
 It turns out that almost every Smart Contract Accounts and Meta Transaction implementations so far fail to consider the specific rules of gas when calling other contracts and are thus **vulnerable to malicious relayers**.
 
@@ -146,7 +146,7 @@ contract Executor {
 
 If you were new to solidity, I am pretty sure you would expect that the _callee_ (here `to`) should be certain to receive an amount of gas equal to `gas`. However, in the current EVM implementation, this only means that the _caller_ is ensured to spend a maximum amount of gas equal to `gas`. In other words, the gas specified as parameter of the CALL* opcodes acts as a protection for the _caller_ to not spend more than `gas` in the call. **The _callee_, on the other hand, is not guaranteed to get any.**
 
-Note that such behaviour is obviously different than the transaction's `gasLimit` as in that latter case, the transaction is at least sure it will get that amount of gas.
+Note that such behaviour is obviously different from the transaction's `gasLimit` as in that latter case, the transaction is at least sure it will get that amount of gas.
 
 You might be thinking that if the _callee_ run out of gas, then surely the _caller_ will throw because no more gas would be left for it neither. 
 
@@ -160,7 +160,7 @@ It was first reported as part of a Gnosis Safe bug bounty on [Solidified.io](htt
 
 The community would have benefited from a disclosure from Gnosis when it published [the result of the formal verification](https://blog.gnosis.pm/formal-verification-a-journey-deep-into-the-gnosis-safe-smart-contracts-b00daf354a9c) as this highlights the limitation of such verification, when the expected behaviour is not fully transcribed.
 
-While it is true that the issue facing such smart contract wallet, can be circumvented by making sure users sign a gasLimit (called `safeTxGas` in Gnosis case) higher than normally necessary, this is not ideal and we should aim to move the security of wallet in the smart contract code as much as possible.
+While it is true that the issue facing such smart contract wallet, can be circumvented by making sure users sign a metatx gasLimit (called `safeTxGas` in Gnosis case) higher than normally necessary, this is not ideal and we should aim to move the security of wallet in the smart contract code as much as possible.
 
 With current Gnosis Safe implementation, the User Interface need to do extra work (increase the amount of gas to be signed by the user) to ensure users are safe against malicious relayers.
 
@@ -208,23 +208,23 @@ to.call.gas(txGas)(data); // CALL
 
 where E is the gas required for the operation between the call to  `gasleft()`  and the actual call PLUS the gas cost of the call itself. This is unfortunately opcode pricing dependent. As gas pricing continue to evolve, it is important to have a mechanism to ensure a specific amount of gas is passed to the call so such mechanism can be used without having to rely on a specific gas pricing.
 
-While it is possible to simply over estimate `E` by a large amount, it could still theoretically be insufficient. Plus it would simply be better to have the EVM do the precise work itself.
+While it is possible to simply over estimate `E` by a large amount, it could still theoretically be insufficient as there are no guarantee opcode pricing will change dramatically. Plus it would simply be better to have the EVM do the precise work itself.
 
 2) Check after the call:
 
 ```
 to.call.gas(txGas)(data); // CALL
-require(gasleft() > txGas / 63, "not enough gas left");
+assert(gasleft() > txGas / 63); // "not enough gas left"
 
 ```
 
 This workaround does not require to compute a `E`  value as mentioned in the previous one and thus does not rely on a specific gas pricing (except for the behaviour of EIP-150). If the call is not given enough gas and fails for that reason, the condition above will always fail, ensuring the current call will revert. 
 
-This check still pass if the gas given was less AND the external call reverted or succeeded EARLY (so that the gas left after the call > txGas / 63). This can be an issue if the code executed as part of the CALL is reverting as a result of a check against the gas provided. Like a meta transaction in a meta transaction.
+This check still pass if the gas given was less AND the external call reverted or succeeded EARLY (so that the gas left after the call > txGas / 63). This can be an issue if the code executed as part of the CALL is reverting as a result of a check against the gas provided. Like a meta transaction in a meta transaction. That is why we use an assert here.
 
 This workaround is actually used in several places today.
 - It was first implemented as part of my work on [Sandbox](https://www.sandbox.game) for a Meta Transaction standard (see [EIP-1776](https://github.com/ethereum/EIPs/issues/1776)).
-- It is used by the winning entry I [submited](https://metatx.eth.link) for [gitcoin Metamask hackathon](https://gitcoin.co/issue/MetaMask/Hackathons/2/3865). See the code [here](https://github.com/wighawag/singleton-1776-meta-transaction/blob/master/contracts/src/GenericMetaTxProcessor.sol#L180-L187) that check for gas left after the call. 
+- It is used by the winning entry I [submited](https://metatx.eth.link) for [gitcoin Metamask hackathon](https://gitcoin.co/issue/MetaMask/Hackathons/2/3865). See the code [here](https://github.com/wighawag/singleton-1776-meta-transaction/blob/master/contracts/src/GenericMetaTxProcessor.sol#L180-L187) that checks for gas left after the call. 
 - PISA research work also include it on their solution, see [here](https://github.com/PISAresearch/contracts.any.sender/blob/da3d14b321974f2079ec598108fdd9426117418a/versions/0.1.8/contracts/Relay.sol#L54)
 
 While these workarounds can indeed be used now, they are limited and a proper solution will involve a change in the EVM.
@@ -232,7 +232,7 @@ While these workarounds can indeed be used now, they are limited and a proper so
 ### <a name="gas_grieving_solution"></a>4. Proper Solution Against "Insuficient Gas Griefing attack"
 In order to properly guard against the issue, we need to ensure there is enough gas at the point of the call being made. While the workarounds in the previous section will help developer build safe smart contracts with the EVM today, they are limited and I have thus proposed an EVM improvement, namely [EIP-1930](https://eips.ethereum.org/EIPS/eip-1930).
 
-In a nutshell, EIP-1930 would allow contract to call other contract with a strict gas semantic, that is, if the gas available (including the reduction done by the 1/64 rule) is not enough for the call to forward the amount of gas specified as part of the opcode, the caller get an out of gas exception. 
+In a nutshell, EIP-1930 would allow contracts to call other contracts with a strict gas semantic, that is, if the gas available (including the reduction done by the 1/64 rule) is not enough for the call to forward the amount of gas specified as part of the opcode, the caller get an out of gas exception. 
 
 It can be implemented either as 3 new CALL* opcodes or by reserving specific gas value range (if we can ensure they have never been used before). See the proposal for details.
 
@@ -240,13 +240,13 @@ This would allow smart contract wallet and meta-transaction in general to ensure
 
 
 ### Inner Call Out Of Gas Attack
-That is not all though. A similar attack is also possible on contracts that call other contracts with all gas available (that is 63/64 of all gas available). In other words, while the issue facing meta-transaction is that they cannot ensure easily that the inner call get a specific amount of gas, the attack described below affects any inner call whose failure do not cause the _caller_ to revert.
+That is unfortunately not the only problem with current Ethereum gas behaviour though. Indeed, a similar attack is also possible on contracts that call other contracts with all gas available (that is 63/64 of all gas available). In other words, while the issue facing meta-transaction is that they cannot ensure easily that the inner call get a specific amount of gas, the attack described below affects any inner call whose failure do not cause the _caller_ to revert.
 
 The result is similar to a **Call Depth Attack** but different as for example calls like `<address>.send` won't fail as they are still given the gas stipend. Indeed, as mentioned above the gas stipend is extra gas and is not affected by the 1/64 rules. As a result such calls are always guaranteed to have 2300.
 
 But the issue has some similar semantic to the **call depth attack** when it is invoked on low level call that catch inner call failure. And these will probably become even more popular with the introduction of "try/catch" in solidity 0.6.
 
-To illustrate the issue, here is a solidity snippet, with the new try/catch feature of solidity 0.6 but the same applies to lower level call that check for success.
+To illustrate the issue, here is a solidity snippet, with the new try/catch feature of solidity 0.6 but the same applies to lower level calls that check for success.
 
 ```solidity
 contract Test {
@@ -284,6 +284,6 @@ I hope the post was informative and helped elucidate the issue Ethereum develope
 
 Help me put forward [EIP-1930](https://eips.ethereum.org/EIPS/eip-1930) in the next hardfork as this would solve at least the gas issues faced by all smart contract wallet and meta transaction processor out there.
 
-Special thanks to [Fabio Hildebrand](https://medium.com/@fabiohildebrand), [Roland Kofler](https://medium.com/@rolandk) and [Whalelephant](https://medium.com/@whalelephant) for reviewing the article.
+Special thanks to [Fabio Hildebrand](https://medium.com/@fabiohildebrand), [Roland Kofler](https://twitter.com/rolandk) and [Whalelephant](https://twitter.com/whalelephantK) for reviewing the article.
 
 Thanks for reading
