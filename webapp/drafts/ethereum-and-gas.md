@@ -17,8 +17,8 @@ Indeed, the Ethereum community is yet to be fully aware of some of the pitfalls 
 
 I hope this article will help shade some light on a core aspect of Ethereum smart contract development and hopefully help improve the situation. 
 
-If you are short on time, the crux of the article is that the current ethereum gas behaviour, including how gas is given to other contract via the various CALL* opcodes is not intuitive and can cause security issues in some situation, like meta-transactions. Plus contracts calling other contracts cannot  be sure that the contracts they call reverted because of a lack of gas or simply because they intentionally reverted, not unlike the infamous "call depth attack".
-  
+If you are short on time, the crux of the article is that the current ethereum gas behaviour, including how gas is given to other contract via the various CALL* opcodes is not intuitive and can cause security issues in some situation, like meta-transactions. Plus contracts calling other contracts cannot be sure that the contracts they call reverted because of a lack of gas or simply because they intentionally reverted, not unlike the infamous "call depth attack".
+
 Let's start with the basics. If you are already familiar with gas on ethereum you can skip to <a href="javascript:;" onclick="document.location.hash='contract_calls';">2. Gas And Contracts Calls</a>.
  
 ## 1. What Is Gas?  
@@ -93,7 +93,7 @@ In solidity, the `<address>.send` and `<address>.transfer` functions will not pa
 
 ## <a name="contract_calls"></a>2. Gas And Contracts Calls
 
-We have so far, described what gas is on Ethereum and seen that every operation has a gas cost. One type of operation, the ones that call other contracts, is more complex in that it has special rules on how gas is given to called contracts and how "out of gas" or other failures are handled.
+We have so far, described what gas is on Ethereum and seen that every operation has a gas cost. One type of operation, the ones that call other contracts, is more complex in that it has special rules on how gas is given to called contracts and how "out of gas" or other failures are handled. As you should see, this has some important consequences.
  
 In Ethereum, a contract (referred here as the _caller_) can call other contracts (referred here as _callees_) via special opcodes (CALL, STATIC_CALL, DELEGATE_CALL,...). When that happen, _callees_ also receive an amount of gas as if they were called directly via a transaction. The gas provided is partially specified by the _caller_ as part of the opcode parameters. See DELEGATE_CALL spec [here](https://eips.ethereum.org/EIPS/eip-7) for example.
 
@@ -102,9 +102,8 @@ If the amount received is not enough (the total gas cost of all operations execu
 
 The _callee_ can also decide on its own to revert (revert its operations but return the unused gas) or throw (revert its operations and consume all gas given). This can be as a result of a specific error in which case the _callee_ can specify an error message, or because it performed an invalid operation (like division by zero). 
 
-**Note that Ethereum has no established convention on error message yet and as such _caller_ have usually no clue of the reason why _callee_ fails**, unless both contracts were build for each other. In particular it cannot know whether the error was actually caused by not being given enough gas.
+**Note that Ethereum has no established convention on error message yet and as such _caller_ have usually no clue of the reason why _callee_ fails**, unless both contracts were build for each other. In particular it cannot know whether the error was actually caused by not being given enough gas or for another reason.
   
-### The 1/64 Rule
 While I mentioned that it is the _caller_ who specify how much gas is given to _callee_, this is a bit more complex.
 
 In the current Ethereum version (post "Tangerine Whistle" hard fork that introduced [EIP-150](https://eips.ethereum.org/EIPS/eip-150)), a _caller_ can actually only give to a _callee_, an amount of gas no greater than: 
@@ -123,13 +122,13 @@ In practice it meant that in most cases you could not trust your _caller_ contra
   
 The solution to prevent this from happening, proposed first in [EIP-114](https://github.com/ethereum/EIPs/issues/114) and finally accepted in [EIP-150](https://eips.ethereum.org/EIPS/eip-150) is to always keep an amount of gas in the _caller_, specifically 1/64 of the available gas. Since at each extra depth level, the gas would diminish rapidly, the recursive depth would get limited naturally and while the 1024 limit still exist today in node implementation, it is for practical purpose unreachable.
   
-This was not the only change in EIP-150 though. The gas provided as part of the CALL* opcodes has changed from a strict value to **a maximum value**, that is, if `~ 63/64` of the available gas is less than the value given to the opcode, the call will still proceed but with less gas than specified, as opposed to reverting, like in previous implementations. One of the reasoning behind such change  (proposed first in [EIP-90](https://github.com/ethereum/EIPs/issues/90) ) was that it was difficult to calculate the gas required by a call and that it was still important to protect the _caller_ and prevent the _callee_ from using all the gas (actually ~63/64 of it). There were propositions to have "give all available gas" as an option but in the end, the idea of having the gas value simply being a maximum was decided. See [this issue](https://github.com/ethereum/EIPs/issues/90) for some of the discussion.
+This was not the only change in EIP-150 though. The gas provided as part of the CALL* opcodes has changed from a strict value to **a maximum value**, that is, if `~ 63/64` of the available gas is less than the value given to the opcode, the call will still proceed but with less gas than specified, as opposed to reverting, like in previous implementations. One of the reasoning behind such change  (proposed first in [EIP-90](https://github.com/ethereum/EIPs/issues/90) ) was that it was not a good idea to calculate the gas required by a call and that it was important to protect the _caller_ by preventing the _callees_ from using all the gas (actually ~63/64 of it). There were propositions to have "give all available gas" as an option but in the end, the idea of having the gas value simply being a maximum was decided. See [this issue](https://github.com/ethereum/EIPs/issues/90) for some of the discussion.
 
 The possibility of *proceed without enough gas* is something we do not naturally expect as developers and as you will see in the next section, it can lead to safety issues.
 
 Many projects out there are actually affected, including [Gnosis Safe](https://safe.gnosis.io) and other smart contract wallet that support meta-transaction. This is also true of the [Gas Station Network (GSN)](https://gasstation.network) by [OpenZeppelin](https://openzeppelin.com).
 
-### <a name="gas_grieving"></a>3. Insufficient Gas Griefing Attack
+## <a name="gas_grieving"></a>3. Insufficient Gas Griefing Attack
 
 As we should see, this was a mistake. Indeed, in some cases, _caller_ contracts need to ensure that the _callee_ receive a specific amount of gas. A feat, not perfectly achievable with current opcodes unless you let your contract be **dependent on specific opcode pricing**.
 
@@ -154,7 +153,7 @@ That's where the 1/64 rule, described above, kicks in. Since `gas/ 64` is left a
 
 By the way, 1/64 is not that small. If an inner call require 6,400,000 gas, the _caller_ would still have 100,000 gas to carry on after the _callee_'s call fails.
 
-As far as I know this vulnerability is not explained properly anywhere. Interestingly enough as I mentioned, it affects several projects already, including almost every smart contract wallet and meta-transaction implementation out there. It also affects (but to a less extent) EIP-165 whose example implementation exemplify the issue, see [here](https://github.com/ethereum/EIPs/pull/881#issuecomment-491677748). 
+As far as I know this vulnerability is not explained properly anywhere. Interestingly enough as I mentioned, it affects several projects already, including almost every smart contract wallet and meta-transaction implementation out there. It also affects EIP-165 (but to a less extent, because for practical purpose it might never matter) whose example implementation exemplify the issue, see [here](https://github.com/ethereum/EIPs/pull/881#issuecomment-491677748). 
 
 It was first reported as part of a Gnosis Safe bug bounty on [Solidified.io](https://solidified.io) back in March 2019, see [bug report](https://web.solidified.io/contract/5b4769b1e6c0d80014f3ea4e/bug/5c83d86ac2dd6600116381f9). Solidified agreed on the importance of the bug. Unfortunately Gnosis Safe team did not officially announce the issue that affects their users. The issue, later posted on github [here](https://github.com/gnosis/safe-contracts/issues/100) remains unanswered. It is also worth noting that the [formal verification](https://github.com/gnosis/safe-contracts/blob/78494bcdbc61b3db52308a25f0556c42cf656ab1/docs/Gnosis_Safe_Formal_Verification_Report_1_0_0.pdf) performed by [Runtime Verification](https://runtimeverification.com) for Gnosis, did not found the issue even though the contract code explicitly attempts to perform the check that enough gas is given to the transaction, see line 101 [here](https://github.com/gnosis/safe-contracts/blob/5a8b07326faf30c644361c9d690d57dbeb838698/contracts/GnosisSafe.sol#L101). 
 
@@ -162,7 +161,7 @@ The community would have benefited from a disclosure from Gnosis when it publish
 
 While it is true that the issue facing such smart contract wallet, can be circumvented by making sure users sign a metatx gasLimit (called `safeTxGas` in Gnosis case) higher than normally necessary, this is not ideal and we should aim to move the security of wallet in the smart contract code as much as possible.
 
-With current Gnosis Safe implementation, the User Interface need to do extra work (increase the amount of gas to be signed by the user) to ensure users are safe against malicious relayers.
+Indeed, with current Gnosis Safe implementation, the User Interface need to do extra work (increase the amount of gas to be signed by the user) to ensure users are safe against malicious relayers.
 
 You can imagine building such interface on IPFS (so that users can trust it does not change) that ensure extra gas is given but then if opcode pricing change, the interface might become vulnerable.
 
@@ -176,6 +175,7 @@ contract Executor {
     function execute(address to, bytes calldata data, uint256 gas) external {
         require(gasleft() >= gas);
         (bool success, bytes memory returnData) = to.call.gas(gas)(data);
+        // extra operation including the logic to reward relayer for submitting the tx
     }
 }
 ``` 
@@ -239,10 +239,10 @@ It can be implemented either as 3 new CALL* opcodes or by reserving specific gas
 This would allow smart contract wallet and meta-transaction in general to ensure that the user's meta- transaction is given the exact amount of gas specified by the user signed message. As such relayers would only get a reward if they give the right amount of gas for the transaction to succeed.
 
 
-### Inner Call Out Of Gas Attack
-That is unfortunately not the only problem with current Ethereum gas behaviour though. Indeed, a similar attack is also possible on contracts that call other contracts with all gas available (that is 63/64 of all gas available). In other words, while the issue facing meta-transaction is that they cannot ensure easily that the inner call get a specific amount of gas, the attack described below affects any inner call whose failure do not cause the _caller_ to revert.
+## Inner Call Out Of Gas Attack
+It turns out that the behavior of gas is responsible for yet another issue. Indeed, a gas based attack is also possible on contracts that call other contracts with all gas available (that is 63/64 of all gas available). In other words, while the issue facing meta-transaction mentionned above, is that they cannot ensure easily that the inner call get a specific amount of gas, the attack described below affects any inner call whose failure do not cause the _caller_ to revert.
 
-The result is similar to a **Call Depth Attack** but different as for example calls like `<address>.send` won't fail as they are still given the gas stipend. Indeed, as mentioned above the gas stipend is extra gas and is not affected by the 1/64 rules. As a result such calls are always guaranteed to have 2300.
+The result is somehow similar to a **Call Depth Attack** but different as for example calls like `<address>.send` won't fail as they are still given the gas stipend. Indeed, as mentioned above the gas stipend is extra gas and is not affected by the 1/64 rules. As a result such calls are always guaranteed to have 2300.
 
 But the issue has some similar semantic to the **call depth attack** when it is invoked on low level call that catch inner call failure. And these will probably become even more popular with the introduction of "try/catch" in solidity 0.6.
 
@@ -270,7 +270,26 @@ A note in that regard has actually already been added to [solidity documentation
 
 To be clear the issue only arise if there is logic in the try/catch that should not be executed if the _callee_ was expected to revert intentionally. For example if the _caller_ expects a revert in the _callee_ for a specific reason, like rejecting token transfer and perform some different logic when the call revert than when it does not.
 
-### Favour Pull Over Push Transfers
+For exampe in the following example, the contract will attempt at transferring token to an address. If the address reject it, the contract assume that it was an intentional rejection and record it maybe so that it cannot be tried again.
+
+```solidity
+contract Test {
+    function test() external {
+	    try transferToken() returns (string message) {
+			emit Done(true);
+		} catch {
+			recordUserAsRejectingTOken();
+            emit Done(false);
+		}
+    }
+}
+```  
+
+
+## Favour Pull Over Push Transfers
+
+The previous example might not be a frequent scenario +++
+
 Another issue with contracts calls worth mentioning is the one that appears when a contract relies on sending fund or tokens to a recipient and that recipient is able to prevent the call from succeeding. This is documented by Consensys [here](https://consensys.github.io/smart-contract-best-practices/known_attacks/#dos-with-unexpected-revert) and [there](https://consensys.github.io/smart-contract-best-practices/known_attacks/#dos-with-unexpected-revert) for sending ETH, but this is also present with token standard like ERC-721, ERC-1155 and ERC-777 that allow the recipient to get notified of the transfer and reject it if desired.
 
 This is actually also possible in the case of ERC-20 as nothing prevent from the standard side, a ERC-20 implementation to implement callback mechanism that would exhibit the same issues.
@@ -284,6 +303,6 @@ I hope the post was informative and helped elucidate the issue Ethereum develope
 
 Help me put forward [EIP-1930](https://eips.ethereum.org/EIPS/eip-1930) in the next hardfork as this would solve at least the gas issues faced by all smart contract wallet and meta transaction processor out there.
 
-Special thanks to [Fabio Hildebrand](https://medium.com/@fabiohildebrand), [Roland Kofler](https://twitter.com/rolandk) and [Whalelephant](https://twitter.com/whalelephantK) for reviewing the article.
+Special thanks to [Belsy](https://twitter.com/whalelephantK), [Fabio Hildebrand](https://medium.com/@fabiohildebrand) and [Roland Kofler](https://twitter.com/rolandk) for reviewing the article.
 
 Thanks for reading
