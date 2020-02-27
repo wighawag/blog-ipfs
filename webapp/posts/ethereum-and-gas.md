@@ -293,7 +293,7 @@ contract Auction {
 }
 ```
 
-We assume here that the ERC20 token used is safe in that its functions cannot call back in the contract nor allow the recipient to reject the transfer. Under this conditions, the code above look at first sigth completely safe. The try catch would technically be unecessary, but let's go with it for the sake of the example.
+We assume here that the ERC20 token used is safe in that its functions cannot call back in the contract nor allow the recipient to reject the transfer. Under this conditions, the code above look at first sight completely safe. The try catch would technically be unecessary, but let's go with it for the sake of the example.
 
 The reason why it is actually not safe, is, as described above, because the new bidder can provide a sppecific amount of gas so that there is not enough gas to give to the 2nd transfer call to succeed but enough for the rest. Since there is nothing happening after the try catch the rest will demand not much gas. maybe a few hundreds.
 

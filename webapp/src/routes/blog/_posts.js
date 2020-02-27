@@ -23,7 +23,7 @@ export function getPost(slug) {
 	const date = new Date(`${metadata.pubdate} EDT`); // cheeky hack
 	metadata.dateString = date.toDateString();
 
-	const html = marked(content);
+	const html = marked(content).split("href=\"http").join("target=\"_blank\" href=\"http");
 
 	return {
 		slug,
