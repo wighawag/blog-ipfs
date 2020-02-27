@@ -226,7 +226,7 @@ Note that this check still pass if the gas given was less AND the external call 
 This workaround is actually used in several places today.
 - It was first implemented as part of my work on [Sandbox](https://www.sandbox.game) for a Meta Transaction standard (see [EIP-1776](https://github.com/ethereum/EIPs/issues/1776)).
 - It is used by the winning entry I [submited](https://metatx.eth.link) for [gitcoin Metamask hackathon](https://gitcoin.co/issue/MetaMask/Hackathons/2/3865). See the code [here](https://github.com/wighawag/singleton-1776-meta-transaction/blob/master/contracts/src/GenericMetaTxProcessor.sol#L180-L187) that checks for gas left after the call. 
-- PISA research work also include it on their solution, see [here](https://github.com/PISAresearch/contracts.any.sender/blob/da3d14b321974f2079ec598108fdd9426117418a/versions/0.1.8/contracts/Relay.sol#L54)
+- PISA research also include it on their solution, see [here](https://github.com/PISAresearch/contracts.any.sender/blob/da3d14b321974f2079ec598108fdd9426117418a/versions/0.1.8/contracts/Relay.sol#L54)
 
 While these workarounds can indeed be used now, they are limited and a proper solution will involve a change in the EVM.
 
@@ -275,7 +275,8 @@ Let illustrates the issue with an example :
 
 ```solidity
 contract Auction {
-    ERC20 token;
+    ...
+    ERC20Token token;
     address highestBidder;
     uint256 highestBid;
     function bid(uint256 amount) external {
@@ -295,12 +296,12 @@ contract Auction {
 
 We assume here that the ERC20 token used is safe in that its functions cannot call back in the contract nor allow the recipient to reject the transfer. Under this conditions, the code above look at first sight completely safe. The try catch would technically be unecessary, but let's go with it for the sake of the example.
 
-The reason why it is actually not safe, is, as described above, because the new bidder can provide a sppecific amount of gas so that there is not enough gas to give to the 2nd transfer call to succeed but enough for the rest. Since there is nothing happening after the try catch the rest will demand not much gas. maybe a few hundreds.
+The reason why it is actually not safe, is, as described above, because the new bidder can provide a specific amount of gas so that there is not enough gas to give to the 2nd transfer call to succeed but enough for the rest. Since there is nothing happening after the try catch the rest will demand not much gas. maybe a few hundreds.
 
-So if the transferFrom demand something like 20,000 gas (possible with an ERC20 token) it will throw while 20,000  / 64  > 300 gas will be left in the bid call, which mightbe just enough to complete.
+So if the transferFrom demand something like 20,000 gas (possible with an ERC20 token) it will throw while 20,000  / 64  > 300 gas will be left in the bid call, which might be just enough to complete.
 
 
-The astute reader might have noticed that this code is the exact analogue of the one described [here](https://blog.ethereum.org/2016/06/10/smart-contract-security/) except it applies to ERC20 tokens and not ethers.
+The astute reader might have noticed that this code is the analogue of the one described [here](https://blog.ethereum.org/2016/06/10/smart-contract-security/) except it applies to ERC20 tokens and not ethers.
 
 This is to illustrate how similar the **Inner Call Out Of Gas Attack** is to the **Call Depth Attack** that we aimed to destroy with EIP-150.
 
@@ -308,8 +309,72 @@ Obviously the example is quite contrived, as for one, as described in the articl
 
 But the recommendation normally stem from the fact that there are possibilities in the token for the recipient to reject a transfer. Here in the example above, that was not the issue.
 
-While there might currently be no practical scenario where the atacck mention here have any importance, we should remain aware of it. And this is another reason to favor pull over push transfer as mentioned by consensys [here](https://consensys.github.io/smart-contract-best-practices/known_attacks/#dos-with-unexpected-revert) and [there](https://consensys.github.io/smart-contract-best-practices/known_attacks/#dos-with-unexpected-revert).
+While there might currently be no practical scenario where the attack mention here have any importance, we should remain aware of it. And this is another reason to favor pull over push transfer as mentioned by consensys [here](https://consensys.github.io/smart-contract-best-practices/known_attacks/#dos-with-unexpected-revert) and [there](https://consensys.github.io/smart-contract-best-practices/known_attacks/#dos-with-unexpected-revert).
 
+By the way you can easily try it out in [remix IDE](http://remix.ethereum.org/)
+
+1. Add the following file:
+
+```solidity
+pragma solidity 0.6.0;
+
+contract ERC20Token {
+    event Transfer(address indexed from, address indexed to, uint256 amount);
+    mapping (address => uint256) balances;
+    function transferFrom(address from, address to, uint256 amount) external returns(bool) {
+        uint256 fromBalance = balances[from];
+        require(fromBalance >= amount, "not enough balance");
+        balances[from] -= amount;
+        balances[to] += amount;
+        emit Transfer(from, to, amount);    
+        return true;
+    }
+    function mint(address to, uint256 amount) external {
+        balances[to] += amount;
+        emit Transfer(address(0), to, amount);    
+    }
+    
+    function balanceOf(address who) external view returns(uint256) {
+        return balances[who];
+    }
+}
+
+contract Auction {
+    
+    constructor(ERC20Token _token) public {
+        token = _token;
+    }
+    
+    ERC20Token token;
+    address public highestBidder;
+    uint256 public highestBid;
+    function bid(uint256 amount) external {
+        require(amount > highestBid, "higher bid required");
+        address oldBidder = highestBidder;
+        uint256 oldBid = highestBid;
+        highestBidder = msg.sender;
+        highestBid = amount;
+        require(token.transferFrom(msg.sender, address(this), amount), "transfer failed");
+        if (oldBidder != address(0)) {
+            try token.transferFrom(address(this), oldBidder, oldBid) {
+            } catch {}
+        }
+    }
+}
+```
+
+2. compile both
+3. deploy ERC20Token
+4. deploy Auction (passing the address of the ERC20Token contract as parameter)
+5. select one account and execute `mint` with that address and `amount` = `1000`
+6. execute `bid` with that exact same amount (`1000`) (so zero is left in the balance afterward)
+7. select another account and execute `mint` for that address with `amount` = `2000`
+8. execute `bid` with an `amount` = `1001` and SPECIFY gasLimit = `60000`
+9. check the balance of the first account and you will see it is still zero. That account did not receive its refund from its previous bid.
+
+You can then repeat the operartions without limiting the gas to 60000 for step 9. and you will see that the first account will get back the amount as intended.
+
+This clearly shows that the transaction signer is able to influence the result of a contract call, simply by changing the gasLimit.
 
 ## Conclusion
 
