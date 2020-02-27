@@ -25,7 +25,7 @@
 
 
 <section class='content'>
-	<h1>{post.metadata.title}</h1>
+	<h1 style="text-align:center;">{post.metadata.title}</h1>
 	{@html post.html}
 </section>
 

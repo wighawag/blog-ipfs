@@ -1,13 +1,20 @@
 ---
 title: Ethereum: The Concept of Gas and its Dangers
 pubdate: 2018-07-18
-mediumLink: https://medium.com/@wighawag/
+mediumLink: https://medium.com/@wighawag/ethereum-the-concept-of-gas-and-its-dangers-28d0eb809bb2
 # image: Sacred_Chao_2.jpg
 # caption: Wikipedia
 # captionlabel: Source:
 # captionlink: https://en.wikipedia.org/wiki/File:Sacred_Chao_2.jpg
 ---
-Hi, I am back with an article on ethereum. We'll explore the concept of gas and explain how it behaves and show what its sometimes, subtle behaviour actually implies.
+
+<!-- height: auto;max-height: 384px;max-width: 100%;" -->
+<figure style="margin: 0 auto;text-align: center;margin: 0 0 1em 0;">
+<img alt="Photo by Jules D. on Unsplash" style="width: 100%;max-width: 600px;margin: 0 0 0.4em 0;" src="/images/gas.jpg"/>
+<figcaption style="margin-top: -1; font-size:0.7em;">Photo by Jules D. on Unsplash</figcaption>
+</figure>
+
+Hi, I am back with an article on Ethereum. We'll explore the concept of gas and explain how it behaves and show what its sometimes, subtle behaviour actually implies.
 
 It turns out that almost every Smart Contract Accounts and Meta Transaction implementations so far fail to consider the specific rules of gas when calling other contracts and are thus **vulnerable to malicious relayers**.
 
@@ -37,7 +44,7 @@ Now, the miners/validators do not get rewarded in gas unit, but in Ether (ETH), 
 
 It is worth noting that there are various efforts going on to solve this and allow users without ETH to interact with Ethereum through what is called "Meta Transactions". It turns out, as we shall see later, that such solutions have  potential issues with the behaviour of gas.
 
-When transactions are included on the network, they are included in batches, called blocks. And to ensure that most modern computer can handle the network (so that the network remain decentralised and not just in the trust of  powerful computers), there is a limit of the amount of gas that can be used in a block. This is in turn limit the number of transactions in a block.
+When transactions are included on the network, they are included in batches, called blocks. And to ensure that most modern computer can handle the network (so that the network remain decentralised and not just in the trust of  powerful computers), there is a limit of the amount of gas that can be used in a block. This, in turn, limits the number of transactions in a block.
 
 As such, users compete for the inclusion of their transaction and so the average price of the gas on Ethereum is set by the market: users compete for transaction inclusion and miners/validators pick the one that give more reward first (higher `gasPrice`). 
   
@@ -104,7 +111,9 @@ If the amount received is not enough (the total gas cost of all operations execu
 The _callee_ can also decide on its own to revert (revert its operations but return the unused gas) or throw (revert its operations and consume all gas given). This can be as a result of a specific error in which case the _callee_ can specify an error message, or because it performed an invalid operation (like division by zero). 
 
 **Note that Ethereum has no established convention on error message yet and as such _caller_ have usually no clue of the reason why _callee_ fails**, unless both contracts were build for each other. In particular it cannot know whether the error was actually caused by not being given enough gas or for another reason.
-  
+
+### The 1/64 Rule
+
 While I mentioned that it is the _caller_ who specify how much gas is given to _callee_, this is a bit more complex.
 
 In the current Ethereum version (post "Tangerine Whistle" hard fork that introduced [EIP-150](https://eips.ethereum.org/EIPS/eip-150)), a _caller_ can actually only give to a _callee_, an amount of gas no greater than: 
@@ -123,7 +132,7 @@ In practice it meant that in most cases you could not trust your _caller_ contra
   
 The solution to prevent this from happening, proposed first in [EIP-114](https://github.com/ethereum/EIPs/issues/114) and finally accepted in [EIP-150](https://eips.ethereum.org/EIPS/eip-150) is to always keep an amount of gas in the _caller_, specifically 1/64 of the available gas. Since at each extra depth level, the gas would diminish rapidly, the recursive depth would get limited naturally and while the 1024 limit still exist today in node implementation, it is for practical purpose unreachable.
   
-This was not the only change in EIP-150 though. The gas provided as part of the CALL* opcodes has changed from a strict value to **a maximum value**, that is, if `~ 63/64` of the available gas is less than the value given to the opcode, the call will still proceed but with less gas than specified, as opposed to reverting, like in previous implementations. One of the reasoning behind such change  (proposed first in [EIP-90](https://github.com/ethereum/EIPs/issues/90) ) was that it was not a good idea to calculate the gas required by a call and that it was important to protect the _caller_ by preventing the _callees_ from using all the gas (actually ~63/64 of it). There were propositions to have "give all available gas" as an option but in the end, the idea of having the gas value simply being a maximum was decided. See [this issue](https://github.com/ethereum/EIPs/issues/90) for some of the discussion.
+This was not the only change in EIP-150 though. The gas provided as part of the CALL* opcodes has changed from a strict value to **a maximum value**, that is, if `~ 63/64` of the available gas is less than the value given to the opcode, the call will still proceed but with less gas than specified, as opposed to reverting, like in previous implementations. One of the reasoning behind such change  (proposed first in [EIP-90](https://github.com/ethereum/EIPs/issues/90) ) was that it was redundant for the contract to calculate the gas required by a call and that it was important to protect the _caller_ by preventing the _callees_ from using all the gas (actually ~63/64 of it). There were propositions to have "give all available gas" as an option but in the end, the idea of having the gas value simply being a maximum was decided. See [this issue](https://github.com/ethereum/EIPs/issues/90) for some of the discussion.
 
 The possibility of *proceed without enough gas* is something we do not naturally expect as developers and as you will see in the next section, it can lead to safety issues.
 
@@ -252,7 +261,7 @@ To illustrate the issue, here is a solidity snippet, with the new try/catch feat
 ```solidity
 contract Test {
     function test() external {
-	    try callNeeding6400000Gas() returns (string message) {
+	    try target.callNeeding6400000Gas() returns (string message) {
 			// do something in case of success
 		} catch {
 			// do something else in case of failure
@@ -305,9 +314,9 @@ The astute reader might have noticed that this code is the analogue of the one d
 
 This is to illustrate how similar the **Inner Call Out Of Gas Attack** is to the **Call Depth Attack** that we aimed to destroy with EIP-150.
 
-Obviously the example is quite contrived, as for one, as described in the article describing the **Call Depth Attack** it is recommended to favour pull over push transfers.
+Obviously the example is made in purpose and might not have any real life equivalent. As for one, as described in the article describing the **Call Depth Attack** it is recommended to favour pull over push transfers.
 
-But the recommendation normally stem from the fact that there are possibilities in the token for the recipient to reject a transfer. Here in the example above, that was not the issue.
+But the recommendation normally stems from the fact that there are possibilities in the token for the recipient to reject a transfer. Here in the example above, that was not the issue.
 
 While there might currently be no practical scenario where the attack mention here have any importance, we should remain aware of it. And this is another reason to favor pull over push transfer as mentioned by consensys [here](https://consensys.github.io/smart-contract-best-practices/known_attacks/#dos-with-unexpected-revert) and [there](https://consensys.github.io/smart-contract-best-practices/known_attacks/#dos-with-unexpected-revert).
 
